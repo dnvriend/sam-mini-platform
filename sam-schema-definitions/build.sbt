@@ -1,8 +1,8 @@
 lazy val `sam-schema-definitions` = (project in file("."))
   .settings(
-    libraryDependencies += "com.github.dnvriend" %% "sam-annotations" % "1.0.14",
-    libraryDependencies += "com.github.dnvriend" %% "sam-serialization" % "1.0.14",
-    libraryDependencies += "com.github.dnvriend" %% "sam-lambda" % "1.0.14",
+    libraryDependencies += "com.github.dnvriend" %% "sam-annotations" % "1.0.16-SNAPSHOT",
+    libraryDependencies += "com.github.dnvriend" %% "sam-serialization" % "1.0.16-SNAPSHOT",
+    libraryDependencies += "com.github.dnvriend" %% "sam-lambda" % "1.0.16-SNAPSHOT",
     libraryDependencies += "com.amazonaws" % "aws-java-sdk" % "1.11.257",
     libraryDependencies += "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
     resolvers += Resolver.bintrayRepo("dnvriend", "maven"),

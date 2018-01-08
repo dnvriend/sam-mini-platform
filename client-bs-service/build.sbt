@@ -1,9 +1,9 @@
 lazy val `client-bs-service` = (project in file("."))
   .settings(
-    libraryDependencies += "com.github.dnvriend" %% "sam-annotations" % "1.0.14",
-    libraryDependencies += "com.github.dnvriend" %% "sam-lambda" % "1.0.14",
-    libraryDependencies += "com.github.dnvriend" %% "sam-serialization" % "1.0.14",
-    libraryDependencies += "com.github.dnvriend" %% "sam-dynamodb-resolver" % "1.0.14",
+    libraryDependencies += "com.github.dnvriend" %% "sam-annotations" % "1.0.16-SNAPSHOT",
+    libraryDependencies += "com.github.dnvriend" %% "sam-lambda" % "1.0.16-SNAPSHOT",
+    libraryDependencies += "com.github.dnvriend" %% "sam-serialization" % "1.0.16-SNAPSHOT",
+    libraryDependencies += "com.github.dnvriend" %% "sam-dynamodb-resolver" % "1.0.16-SNAPSHOT",
     libraryDependencies += "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
     libraryDependencies += "com.amazonaws" % "aws-java-sdk-kinesis" % "1.11.255",
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.13.4",

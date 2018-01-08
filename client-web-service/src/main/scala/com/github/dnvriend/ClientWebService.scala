@@ -5,6 +5,7 @@ import java.util.UUID
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
 import com.github.dnvriend.lambda._
 import com.github.dnvriend.lambda.annotation.{HttpHandler, ScheduleConf}
+import com.github.dnvriend.lambda.annotation.policy._
 import com.github.dnvriend.platform.model.client.{Client, ContactInformation, LivingAddress}
 import com.github.dnvriend.sam.serialization.serializer.SamSerializer
 import org.scalacheck.Gen

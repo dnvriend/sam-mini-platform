@@ -9,8 +9,6 @@ import scala.compat.Platform
   * A generator for creating client information
   */
 object GenClient {
-  def timestamp: Long = Platform.currentTime
-
   val genContactInfo = for {
     email <- Gen.alphaStr
     telephone <- Gen.alphaStr
@@ -22,9 +20,9 @@ object GenClient {
   )
 
   val genLivingAddress = for {
-    street <- Gen.alphaStr
-    houseNr <- Gen.posNum[Int]
-    zipcode <- Gen.alphaStr
+    street <- Gen.oneOf("first street", "second street", "third street", "fourth street, fifth street, sixth street, seventh street, eight street")
+    houseNr <- Gen.chooseNum(1, 500)
+    zipcode <- Gen.oneOf("1000AB", "2000CD", "3000EF","4000GH", "5000IJ")
   } yield LivingAddress(
     street,
     houseNr,
@@ -33,9 +31,10 @@ object GenClient {
   val genClient = for {
     clientId <- Gen.uuid.map(id => id.toString)
     name <- Gen.alphaStr
-    age <- Gen.posNum[Int]
+    age <- Gen.chooseNum(1, 100)
     livingAddress <- genLivingAddress
     contactInfo <- genContactInfo
+    timestamp <- Gen.calendar.map(_.getTimeInMillis)
   } yield Client(
     clientId,
     name,

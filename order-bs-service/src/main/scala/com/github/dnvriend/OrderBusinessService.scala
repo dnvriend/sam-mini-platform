@@ -18,6 +18,7 @@ class OrderBusinessService extends KinesisEventHandler {
         events.foreach { event =>
             val record = event.dataAs[SamRecord]
             val result = SamSerializer.deserialize[Order](record, resolver, None)
+            result foreach OrderDBInserter.insertOrder
             println(result)
         }
     }

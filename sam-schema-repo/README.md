@@ -1,1 +1,0 @@
-# sam-schema-repo

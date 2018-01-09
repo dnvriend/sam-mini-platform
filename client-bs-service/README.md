@@ -1,1 +1,0 @@
-# client-reg-service

@@ -11,7 +11,7 @@ object GlobalBuildSettings extends AutoPlugin {
   // put these settings at the build level (for all projects)
   override def buildSettings: Seq[Def.Setting[_]] = Seq(
     organization := "com.github.dnvriend",
-    samStage := "dn",
+    samStage := "dev",
     scalaVersion := "2.12.4",
   ) ++ samPluginSettings ++ resolverSettings ++ librarySettings
 

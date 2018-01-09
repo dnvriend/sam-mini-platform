@@ -65,7 +65,7 @@ class ClientBusinessService extends KinesisEventHandler {
     events.foreach { event =>
       val record = event.dataAs[SamRecord]
       println(record)
-      val result = SamSerializer.deserialize[Client](record, resolver, Option(cmkArn))
+      val result = SamSerializer.deserialize[Client](record, resolver, None)
       result foreach { client =>
         println("Deserialized client: " + client)
         ClientRepository.clientTable(ctx).put(client.clientId, client)

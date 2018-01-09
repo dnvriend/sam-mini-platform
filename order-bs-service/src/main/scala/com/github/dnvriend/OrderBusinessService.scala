@@ -21,6 +21,7 @@ import play.api.libs.json._
 @KinesisConf(stream = "import:order-intake:order-intake-stream", startingPosition = "TRIM_HORIZON")
 class OrderBusinessService extends KinesisEventHandler {
     def randomId: String = UUID.randomUUID().toString
+    val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
     override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
         val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")
         events.foreach { event =>
@@ -28,16 +29,17 @@ class OrderBusinessService extends KinesisEventHandler {
             println("Deserialized record: " + record)
             val result: DTry[Order] = SamSerializer.deserialize[Order](record, resolver, None)
             result foreach { order =>
-                if(order.orderId.isEmpty) order.copy(orderId = randomId)
                 println("Deserialized order: " + order)
-                OrderDBInserter.insertOrder(order)
+                val orderToUse = if(order.orderId.isEmpty) order.copy(orderId = randomId) else order
+                println("OrderToUse: " + orderToUse)
+                OrderDBInserter.insertOrder(orderToUse)
                 PublishOrder.publish(
                     OrderReleaseModel(
-                        order.orderId,
-                        order.clientId,
-                        order.name,
-                        order.orderLines.toString,
-                        order.timestamp
+                        orderToUse.orderId,
+                        orderToUse.clientId,
+                        orderToUse.name,
+                        orderToUse.orderLines.toString,
+                        orderToUse.timestamp
                     ), ctx)
             }
         }

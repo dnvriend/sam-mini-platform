@@ -53,6 +53,7 @@ object OrderDBInserter {
          |'${orderLine.name}',
          |${orderLine.numItems},
          |${orderLine.price}
+         |);
        """.stripMargin
     }
 

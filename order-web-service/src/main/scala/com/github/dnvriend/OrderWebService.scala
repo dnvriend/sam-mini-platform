@@ -24,7 +24,7 @@ object PublishOrder {
     def publish(order: Order, ctx: SamContext): Unit = {
         val stage: String = ctx.stage
         val streamName: String = s"order-intake-$stage-order-intake-stream"
-        SamSerializer.serialize(order, Option(cmkArn)).fold(
+        SamSerializer.serialize(order, None).fold(
             t => throw t, record => {
                 val recordJson: String = Json.toJson(record).toString
                 val recordJsonEOL = recordJson + "\n"

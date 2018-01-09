@@ -3,6 +3,7 @@ package com.github.dnvriend
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
 import com.github.dnvriend.lambda.{KinesisEvent, KinesisEventHandler, SamContext}
 import com.github.dnvriend.lambda.annotation.KinesisConf
+import com.github.dnvriend.lambda.annotation.policy._
 import com.github.dnvriend.platform.model.client.Client
 import com.github.dnvriend.repo.JsonRepository
 import com.github.dnvriend.repo.dynamodb.DynamoDBJsonRepository
@@ -15,7 +16,7 @@ import scalaz._
 import scalaz.Scalaz._
 
 /**
-  * Publishes a SamRecord as 'structured data' to client intake
+  * Publishes a Client release model to the release stream
   */
 object PublishClient {
   val kinesis = AmazonKinesisClientBuilder.defaultClient()
@@ -51,15 +52,22 @@ object ClientRepository {
   }
 }
 
-@KinesisConf(stream = "import:client-intake:client-intake-stream")
+@AmazonDynamoDBFullAccess
+@CloudWatchFullAccess
+@AmazonKinesisFullAccess
+@AWSLambdaVPCAccessExecutionRole
+@AWSKeyManagementServicePowerUser
+@KinesisConf(stream = "import:client-intake:client-intake-stream", startingPosition = "TRIM_HORIZON")
 class ClientBusinessService extends KinesisEventHandler {
+  val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
   override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
     val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")
     events.foreach { event =>
       val record = event.dataAs[SamRecord]
-      val result = SamSerializer.deserialize[Client](record, resolver, None)
+      println(record)
+      val result = SamSerializer.deserialize[Client](record, resolver, Option(cmkArn))
       result foreach { client =>
-
+        println("Deserialized client: " + client)
         ClientRepository.clientTable(ctx).put(client.clientId, client)
         ClientDBInserter.insertClient(client)
 

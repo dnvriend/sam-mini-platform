@@ -20,11 +20,11 @@ import scala.compat.Platform
   */
 object PublishOrder {
     val kinesis = AmazonKinesisClientBuilder.defaultClient()
-
+    val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
     def publish(order: Order, ctx: SamContext): Unit = {
         val stage: String = ctx.stage
         val streamName: String = s"order-intake-$stage-order-intake-stream"
-        SamSerializer.serialize(order, None).fold(
+        SamSerializer.serialize(order, Option(cmkArn)).fold(
             t => throw t, record => {
                 val recordJson: String = Json.toJson(record).toString
                 val recordJsonEOL = recordJson + "\n"

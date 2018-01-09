@@ -19,37 +19,48 @@ object OrderDBInserter {
   private val dbUserName = "martijn"
   private val dbPassword = "mypassword"
   private val dbPort = 5432
-  private val dbUrl = s"jdbc:postgresql://$dbendpoint:$dbPort/postgres"
+  private val dbUrl = s"jdbc:postgresql://$dbendpoint:$dbPort/$dbName"
 
   private val properties: Properties = new Properties()
   properties.setProperty("useSSL", "false")
   properties.setProperty("user", dbUserName)
   properties.setProperty("password", dbPassword)
 
+  def toDateFormat(time: Long): String = {
+    //'2018-01-08 14:29:33'
+    new java.text.SimpleDateFormat("YYYY-MM-dd HH:mm:ss").format(new java.util.Date(time))
+  }
+
   def insertOrder(order: Order): Unit = {
     val connection = DriverManager.getConnection(dbUrl, properties)
 
     val orderSQL: String =
     s"""
-         |INSERT INTO orders(order_id, client_id, name, timestamp) VALUES (
-         | ${order.orderId},
-         | ${order.clientId},
-         | ${order.name},
-         | ${order.timestamp}
+         |INSERT INTO public.orders(order_id, client_id, name, timestamp) VALUES (
+         | '${order.orderId}',
+         | '${order.clientId}',
+         | '${order.name}',
+         | '${toDateFormat(order.timestamp)}'
          |);
        """.stripMargin
 
     def orderLinesSQL(order: Order): List[String] = order.orderLines.map{orderLine =>
       s"""
-         |INSERT into order_lines(order_line_id, order_id, product_id, name, num_items, price) VALUES (
-         |${UUID.randomUUID().toString}
-         |${order.orderId}
-         |${orderLine.productId}
-         |${orderLine.name}
-         |${orderLine.numItems}
+         |INSERT into public.order_lines(order_line_id, order_id, product_id, name, num_items, price) VALUES (
+         |'${UUID.randomUUID().toString}',
+         |'${order.orderId}',
+         |'${orderLine.productId}',
+         |'${orderLine.name}',
+         |${orderLine.numItems},
          |${orderLine.price}
        """.stripMargin
     }
+
+    println(s"""
+       |All sql statements:
+       |$orderSQL
+       |${orderLinesSQL(order)}
+     """.stripMargin)
 
     execute(connection.prepareStatement(orderSQL)){stmt =>
       val insertResult = stmt.executeUpdate()
@@ -59,7 +70,7 @@ object OrderDBInserter {
     execute(connection.createStatement()){stmt =>
       orderLinesSQL(order).foreach(stmt.addBatch)
       val batchResult = stmt.executeBatch()
-      println(s"Affected Rows after Order batch insert: '${batchResult.toList.fold}'")
+      println(s"Affected Rows after Order batch insert: '${batchResult.toList.foldMap(identity)}'")
     }
     connection.close()
   }

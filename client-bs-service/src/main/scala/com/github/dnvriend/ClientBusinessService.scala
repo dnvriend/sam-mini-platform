@@ -60,33 +60,40 @@ object ClientRepository {
 @KinesisConf(stream = "import:client-intake:client-intake-stream", startingPosition = "TRIM_HORIZON")
 class ClientBusinessService extends KinesisEventHandler {
   val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
-  override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
-    val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")
-    events.foreach { event =>
-      val record = event.dataAs[SamRecord]
-      println(record)
-      val result = SamSerializer.deserialize[Client](record, resolver, None)
-      result foreach { client =>
-        println("Deserialized client: " + client)
-        ClientRepository.clientTable(ctx).put(client.clientId, client)
-        ClientDBInserter.insertClient(client)
 
-        val releaseModel = ClientReleaseModel(
-          client.clientId,
-          client.name,
-          client.age,
-          client.contactInformation.email,
-          client.contactInformation.mobile,
-          client.contactInformation.telephone,
-          client.livingAddress.street,
-          client.livingAddress.houseNr,
-          client.livingAddress.zipcode,
-        )
-        PublishClient.publish(releaseModel, ctx)
-      }
-      if(result.isLeft) {
-        println("Error deserializing client: " + result.swap.foldMap(_.toString))
+  override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
+    val result = Disjunction.fromTryCatchNonFatal {
+      val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")
+      events.foreach { event =>
+        val record = event.dataAs[SamRecord]
+        println(record)
+        val result = SamSerializer.deserialize[Client](record, resolver, None)
+        result foreach { client =>
+          println("Deserialized client: " + client)
+          val clientToUse = if(client.clientId.isEmpty) GenClient.iterator.next() else client
+          println("Client To Use: " + clientToUse)
+          ClientRepository.clientTable(ctx).put(clientToUse.clientId, clientToUse)
+          ClientDBInserter.insertClient(clientToUse)
+
+          val releaseModel = ClientReleaseModel(
+            clientToUse.clientId,
+            clientToUse.name,
+            clientToUse.age,
+            clientToUse.contactInformation.email,
+            clientToUse.contactInformation.mobile,
+            clientToUse.contactInformation.telephone,
+            clientToUse.livingAddress.street,
+            clientToUse.livingAddress.houseNr,
+            clientToUse.livingAddress.zipcode,
+          )
+          PublishClient.publish(releaseModel, ctx)
+        }
+        if (result.isLeft) {
+          println("Error deserializing client: " + result.swap.foldMap(_.toString))
+        }
       }
     }
+
+    println(result.bimap(t => t.toString, _ => "ok").merge)
   }
 }

@@ -1,6 +1,7 @@
 package com.github.dnvriend
 
-import java.util.UUID
+import java.sql.{Connection, DriverManager}
+import java.util.{Properties, UUID}
 
 import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
 import com.github.dnvriend.lambda._
@@ -8,12 +9,11 @@ import com.github.dnvriend.lambda.annotation.KinesisConf
 import com.github.dnvriend.lambda.annotation.policy._
 import com.github.dnvriend.platform.model.order.Order
 import com.github.dnvriend.sam.resolver.dynamodb.DynamoDBSchemaResolver
-import com.github.dnvriend.sam.serialization.DTry
 import com.github.dnvriend.sam.serialization.record.SamRecord
 import com.github.dnvriend.sam.serialization.serializer.SamSerializer
 import play.api.libs.json._
+
 import scalaz._
-import scalaz.Scalaz._
 
 @AmazonDynamoDBFullAccess
 @CloudWatchFullAccess
@@ -22,6 +22,19 @@ import scalaz.Scalaz._
 @AWSKeyManagementServicePowerUser
 @KinesisConf(stream = "import:order-intake:order-intake-stream", startingPosition = "TRIM_HORIZON")
 class OrderBusinessService extends KinesisEventHandler {
+  Class.forName("org.postgresql.Driver").newInstance()
+  private val dbendpoint = "rds-test-martijn.c5mvtqg6mxyp.eu-west-1.rds.amazonaws.com"
+  private val dbName = "rdstest"
+  private val dbUserName = "martijn"
+  private val dbPassword = "mypassword"
+  private val dbPort = 5432
+  private val dbUrl = s"jdbc:postgresql://$dbendpoint:$dbPort/$dbName?reWriteBatchedInserts=true"
+  private val properties: Properties = new Properties()
+  properties.setProperty("useSSL", "false")
+  properties.setProperty("user", dbUserName)
+  properties.setProperty("password", dbPassword)
+  private val connection: Connection = DriverManager.getConnection(dbUrl, properties)
+
   def randomId: String = UUID.randomUUID().toString
 
   val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
@@ -29,24 +42,23 @@ class OrderBusinessService extends KinesisEventHandler {
   override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
     val result = Disjunction.fromTryCatchNonFatal {
       val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")
-      events.foreach { event =>
+      val orders: List[Order] = events.map { event =>
         val record: SamRecord = event.dataAs[SamRecord]
-        println("Deserialized record: " + record)
-        val result: DTry[Order] = SamSerializer.deserialize[Order](record, resolver, None)
-        result foreach { order =>
-          println("Deserialized order: " + order)
-          val orderToUse = if (order.orderId.isEmpty) GenOrder.iterator.next() else order
-          println("OrderToUse: " + orderToUse)
-          OrderDBInserter.insertOrder(orderToUse)
-          PublishOrder.publish(
-            OrderReleaseModel(
-              orderToUse.orderId,
-              orderToUse.clientId,
-              orderToUse.name,
-              orderToUse.orderLines.toString,
-              orderToUse.timestamp
-            ), ctx)
-        }
+        SamSerializer.deserialize[Order](record, resolver, None).fold(
+          _ => GenOrder.iterator.next(), identity
+        )
+      }
+      val recordsInserted: Int = OrderDBInserter.insertOrders(orders, connection)
+      println(s"Received: ${orders.size} records, Inserted: $recordsInserted records!!")
+      orders.foreach { order =>
+        PublishOrder.publish(
+          OrderReleaseModel(
+            order.orderId,
+            order.clientId,
+            order.name,
+            order.orderLines.toString,
+            order.timestamp
+          ), ctx)
       }
     }
 

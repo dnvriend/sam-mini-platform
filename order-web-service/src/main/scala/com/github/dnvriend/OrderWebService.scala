@@ -40,13 +40,25 @@ object ClientRepository {
     }
 }
 
+object Main extends App {
+    println(GenOrder.iterator.next())
+}
+
 object GenOrder {
 
     def timestamp: Long = Platform.currentTime
 
+    val firstNames: List[String] = scala.io.Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("firstnames.csv")).getLines().toList
+    val lastNames: List[String] = scala.io.Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("lastnames.csv")).getLines().toList
+
+    val genName = for {
+        fn <- Gen.oneOf(firstNames)
+        ln <- Gen.oneOf(lastNames)
+    } yield s"$fn $ln"
+
     val genOrderLine = for {
         productId <- Gen.uuid.map(_.toString)
-        name <- Gen.alphaStr
+        name <- genName
         numItems <- Gen.posNum[Int]
         price <- Gen.posNum[Int]
     } yield OrderLine(
@@ -56,25 +68,21 @@ object GenOrder {
         price
     )
 
-    def getClientId(ctx: SamContext): String = {
-        val clients: List[(String, Client)] = ClientRepository.clientTable(ctx).list[Client]()
-        clients.headOption.map(_._1).getOrElse(UUID.randomUUID().toString)
-    }
-
-    def genOrder(ctx: SamContext) = for {
+    val genOrder = for {
         orderId <- Gen.uuid.map(_.toString)
-        name <- Gen.alphaStr
+        clientId <- Gen.uuid.map(_.toString)
+        name <- genName
         orderLine <- Gen.listOfN(10, genOrderLine)
     } yield Order(
         orderId,
-        getClientId(ctx),
+        clientId,
         name,
         orderLine,
         timestamp
     )
 
-    def iterator(ctx: SamContext): Iterator[Order] = {
-        Stream.continually(genOrder(ctx).sample).collect { case Some(client) => client }.iterator
+    val iterator: Iterator[Order] = {
+        Stream.continually(genOrder.sample).collect { case Some(client) => client }.iterator
     }
 }
 
@@ -84,7 +92,7 @@ object GenOrder {
 @ScheduleConf(schedule = "rate(1 minute)")
 class CreateOrderScheduled extends ScheduledEventHandler {
     override def handle(event: ScheduledEvent, ctx: SamContext): Unit = {
-        GenOrder.iterator(ctx).take(100).foreach(
+        GenOrder.iterator.take(500).foreach(
             PublishOrder.publish(_, ctx)
         )
     }

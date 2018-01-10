@@ -10,7 +10,7 @@ import com.github.dnvriend.lambda.annotation.ScheduleConf
 class CreateClientScheduled extends ScheduledEventHandler {
   override def handle(event: ScheduledEvent, ctx: SamContext): Unit = {
     ctx.logger.log("Publishing clients...")
-    GenClient.iterator.take(100).foreach { client =>
+    GenClient.iterator.take(250).foreach { client =>
       try {
         PublishClient.publish(client, ctx)
       } catch {

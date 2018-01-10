@@ -57,10 +57,8 @@ object ClientRepository {
 @AmazonKinesisFullAccess
 @AWSLambdaVPCAccessExecutionRole
 @AWSKeyManagementServicePowerUser
-@KinesisConf(stream = "import:client-intake:client-intake-stream", startingPosition = "TRIM_HORIZON")
+@KinesisConf(stream = "import:client-master:client-master-stream", startingPosition = "TRIM_HORIZON")
 class ClientBusinessService extends KinesisEventHandler {
-  val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
-
   override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
     val result = Disjunction.fromTryCatchNonFatal {
       val resolver = new DynamoDBSchemaResolver(ctx, "import:sam-schema-repo:schema_by_fingerprint")

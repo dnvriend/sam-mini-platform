@@ -20,7 +20,7 @@ import scalaz._
 @AmazonKinesisFullAccess
 @AWSLambdaVPCAccessExecutionRole
 @AWSKeyManagementServicePowerUser
-@KinesisConf(stream = "import:order-intake:order-intake-stream", startingPosition = "TRIM_HORIZON")
+@KinesisConf(stream = "import:order-master:order-master-stream", startingPosition = "TRIM_HORIZON")
 class OrderBusinessService extends KinesisEventHandler {
   Class.forName("org.postgresql.Driver").newInstance()
   private val dbendpoint = "rds-test-martijn.c5mvtqg6mxyp.eu-west-1.rds.amazonaws.com"
@@ -36,8 +36,6 @@ class OrderBusinessService extends KinesisEventHandler {
   private val connection: Connection = DriverManager.getConnection(dbUrl, properties)
 
   def randomId: String = UUID.randomUUID().toString
-
-  val cmkArn: String = "arn:aws:kms:eu-west-1:015242279314:key/04a8c913-9c2b-42e8-a4b5-1bd2beccc3f2"
 
   override def handle(events: List[KinesisEvent], ctx: SamContext): Unit = {
     val result = Disjunction.fromTryCatchNonFatal {

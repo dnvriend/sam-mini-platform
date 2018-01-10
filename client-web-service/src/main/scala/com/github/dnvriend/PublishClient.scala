@@ -17,7 +17,7 @@ object PublishClient {
   def publish(client: Client, ctx: SamContext): Unit = {
     val stage: String = ctx.stage
     val streamName: String = s"client-intake-$stage-client-intake-stream"
-    SamSerializer.serialize(client, None).fold(
+    SamSerializer.serialize(client, Option(cmkArn)).fold(
       t => throw t, record => {
         val recordJson: String = Json.toJson(record).toString
         val recordJsonEOL: String = recordJson + "\n"

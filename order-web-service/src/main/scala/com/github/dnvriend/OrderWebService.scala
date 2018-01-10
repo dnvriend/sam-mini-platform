@@ -24,7 +24,7 @@ object PublishOrder {
     def publish(order: Order, ctx: SamContext): Unit = {
         val stage: String = ctx.stage
         val streamName: String = s"order-intake-$stage-order-intake-stream"
-        SamSerializer.serialize(order, None).fold(
+        SamSerializer.serialize(order, Option(cmkArn)).fold(
             t => throw t, record => {
                 val recordJson: String = Json.toJson(record).toString
                 val recordJsonEOL = recordJson + "\n"
@@ -92,7 +92,7 @@ object GenOrder {
 @ScheduleConf(schedule = "rate(1 minute)")
 class CreateOrderScheduled extends ScheduledEventHandler {
     override def handle(event: ScheduledEvent, ctx: SamContext): Unit = {
-        GenOrder.iterator.take(500).foreach(
+        GenOrder.iterator.take(250).foreach(
             PublishOrder.publish(_, ctx)
         )
     }

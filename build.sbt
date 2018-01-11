@@ -42,6 +42,8 @@ lazy val `order-master-gov` = project in file("order-master-gov")
 
 lazy val `order-release` = project in file("order-release")
 
+lazy val `order-release-gov` = project in file("order-release-gov")
+
 lazy val `order-web-service` = project in file("order-web-service")
 
 lazy val `order-proc` = project in file("order-proc")
@@ -63,6 +65,7 @@ deployCore := {
 	(samDeploy in `order-master`).value
 	(samDeploy in `order-master-gov`).value
 	(samDeploy in `order-release`).value
+	(samDeploy in `order-release-gov`).value
 }
 
 lazy val deployServices = taskKey[Unit]("Deploy service components")
@@ -96,6 +99,7 @@ removeCore := {
 	(samRemove in `client-master`).value
 	(samRemove in `order-intake`).value
 	(samRemove in `order-release`).value
+	(samRemove in `order-release-gov`).value
 	(samRemove in `order-master`).value
 	(samRemove in `order-master-gov`).value
 	Def.sequential(samRemove in `sam-schema-repo`, samRemove in `sam-authorization`).value

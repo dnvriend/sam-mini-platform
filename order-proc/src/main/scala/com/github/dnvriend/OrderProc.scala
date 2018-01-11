@@ -42,3 +42,6 @@ class OrderProcessor extends KinesisEventHandler {
     ctx.logger.log(result.bimap(t => t.toString, _ => "ok").merge)
   }
 }
+
+// [stream: order-intake] map (f) [stream:order-master]
+// Source("stream:order-intake").map(f).Sink("stream:order-master")
